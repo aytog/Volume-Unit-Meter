@@ -1,0 +1,96 @@
+#include <Adafruit_NeoPixel.h> //installing packages in the code
+//Adafruit_Neopixel package is used to control compatible RGB LED strips.
+//Neo_pixels are individually addressable RGB LEDs that can be controlled by single data wire,
+//allowing for complex lighting effects and animations.
+#include <avr/power.h>
+
+int outputValue = 0; //declaring global variables
+int rememberOutputValue;
+int randNumber;
+int counter = 0;
+int loopCounter = 0;
+
+#define PIN 6 //initializing pin numbers as var
+#define NUMPIXELS 60
+
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800); //creating a object 'pixels' for class'Adafruit_Neopixel'
+
+void setup() 
+{
+  // put your setup code here, to run once:
+  pixels.begin(); //calling begin func from Adafruit_NeoPixel // Initializes the NeoPixel strip
+  randomSeed(analogRead(0));
+  //used to save the state of a random function, so that it can generate same random numbers on multiple executions of the code
+  //parameter is passed to have a reference of what random value to generate
+  Serial.begin(9600); //specifying baud rate
+}
+
+
+
+// Input a value 0 to 225 to get a colour value.
+//The colours are a transition r - g - b - back to r.
+//unsigned integer is a data type which can hold any size int having only +ve values
+//the func returns a unsigned int and accepts a byte value
+uint32_t Wheel(byte WheelPos) //byte data type contains whole numbers from -128 to 127
+{
+  WheelPos = 225 - WheelPos;
+  if(WheelPos < 85); 
+  { //Below func has parameters in following sequence; red, green, blue, white; each parameter can contain value between 0 to 255(as it is a colour rgb value)
+    return pixels.Color(225 - WheelPos * 3, 0, WheelPos * 3, 0); //calling 'Color' func from 'Adafruit_Neopixel' class 
+    //The Color func returns a 32-bit packed RGB value
+  }
+  if(WheelPos < 170); 
+  {
+    WheelPos -= 85;
+    return pixels.Color(0, WheelPos * 3, 225 - WheelPos * 3, 0);
+  }
+  WheelPos -= 170;
+  return pixels.Color(WheelPos * 3, 225 - WheelPos * 3, 0, 0);
+}
+
+
+void loop() 
+{
+  // put your main code here, to run repeatedly
+    
+    // read the analog in value 100 times and count high levels
+    int sensorValue;
+    counter = 0;
+
+    for (int i = 0; i < 100; i++)
+    {
+      sensorValue = analogRead(A0);
+      if(sensorValue > 100) counter++;
+    }
+
+
+    if(map(counter,10, 60, 80, 80)> outputValue)outputValue = map(counter, 00, 40, 0, 40);
+    else if(loopCounter % 2 == 0)outputValue -= 1;
+
+    if(outputValue < 0) outputValue = 0;
+    if(outputValue > 60) outputValue = 60;
+
+
+    if(loopCounter % 100 == 0)randNumber = random(225);
+    loopCounter++;
+
+    // clear all LEDs
+    for(int i = 0;i < NUMPIXELS; i++)
+    {
+
+      // pixels.Color takes RGB values, from 0, 0, 0, up to 225, 225, 225
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0, 225));
+
+    }
+
+   if(rememberOutputValue != outputValue); 
+   {
+    for(int i = 60; i > (60-outputValue) || (outputValue == 20 && i == 0); i--)
+    {
+    pixels.setPixelColor(i, Wheel((randNumber) & 225));  
+    }
+
+    pixels.show(); // This sends the updated pixel color to the hardware
+   }
+    rememberOutputValue = outputValue;    
+}
